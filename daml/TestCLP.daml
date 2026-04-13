@@ -1,0 +1,57 @@
+module TestCLP where
+
+import Daml.Script
+import CLP
+
+testCLP: Script ()
+testCLP = script do
+    customer1 <- allocateParty "Alice"
+    customer2 <- allocateParty "Bob"
+    airline <- allocateParty "Epic Airlines"
+
+    -- Alice submits a CLP application
+    aliceAppId <- submit customer1 do
+        createCmd CLPApplication with
+            customer = customer1
+            airline = airline
+            customerId = "123"
+            customerName = "Alice"
+            email = "alice@wonderland.io"
+
+    -- Airline reviews Alice's application, creating a CLPAccount
+    aliceAccountId <- submit airline do
+        exerciseCmd aliceAppId ReviewApplication
+
+    -- Bob submits a CLP application
+    bobAppId <- submit customer2 do
+        createCmd CLPApplication with
+            customer = customer2
+            airline = airline
+            customerId = "234"
+            customerName = "Bob"
+            email = "bob@nomansland.io"
+
+    -- Airline reviews Bob's application
+    bobAccountId <- submit airline do
+        exerciseCmd bobAppId ReviewApplication
+
+    -- Airline adds points to Alice's account
+    aliceAccountId <- submit airline do
+        exerciseCmd aliceAccountId Addpoints with
+            pointsToAdd = 500
+
+    -- Airline adds points to Bob's account
+    bobAccountId <- submit airline do
+        exerciseCmd bobAccountId Addpoints with
+            pointsToAdd = 300
+
+    -- Alice redeems some points
+    aliceAccountId <- submit customer1 do
+        exerciseCmd aliceAccountId RedeemPoints with
+            pointsToRedeem = 200
+
+    -- Query all accounts and debug
+    accounts <- query @CLPAccount airline
+    debug accounts
+
+    return ()

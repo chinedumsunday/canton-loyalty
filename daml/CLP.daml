@@ -1,0 +1,65 @@
+module CLP where
+
+template CLPAccount with
+  customer : Party
+  airline : Party
+  customerId : Text
+  customerName : Text
+  email : Text
+  points : Int
+  
+    where
+      signatory customer, airline
+
+      choice Addpoints : ContractId CLPAccount
+        with
+          pointsToAdd : Int
+        controller airline
+        do
+          create CLPAccount with
+            customer = customer
+            airline = airline
+            customerId = customerId
+            customerName = customerName
+            email = email
+            points = points + pointsToAdd
+
+      choice RedeemPoints : ContractId CLPAccount
+        with
+          pointsToRedeem : Int
+        controller customer
+        do
+          assertMsg "Not enough points to redeem" (points >= pointsToRedeem)
+          create CLPAccount with
+            customer = customer
+            airline = airline
+            customerId = customerId
+            customerName = customerName
+            email = email
+            points = points - pointsToRedeem
+
+template CLPApplication with
+  customer : Party
+  airline : Party
+  customerId : Text
+  customerName : Text
+  email : Text
+    where
+      signatory customer
+      observer airline
+
+      choice ReviewApplication : ContractId CLPAccount
+        controller airline
+        do
+          create CLPAccount with
+            customer = customer
+            airline = airline
+            customerId = customerId
+            customerName = customerName
+            email = email
+            points = 0
+
+      choice WithdrawApplication : ()
+        controller customer
+        do
+          return ()
